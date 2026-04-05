@@ -1,0 +1,485 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 0.625rem;
+    /* Dark navy trading theme - OKLCH values */
+    --background: 0.135 0.025 248;
+    --foreground: 0.93 0.015 240;
+    --card: 0.16 0.03 248;
+    --card-foreground: 0.93 0.015 240;
+    --popover: 0.18 0.035 248;
+    --popover-foreground: 0.93 0.015 240;
+    --primary: 0.82 0.155 80;
+    --primary-foreground: 0.12 0.02 248;
+    --secondary: 0.22 0.04 248;
+    --secondary-foreground: 0.93 0.015 240;
+    --muted: 0.2 0.035 248;
+    --muted-foreground: 0.62 0.04 240;
+    --accent: 0.22 0.04 248;
+    --accent-foreground: 0.93 0.015 240;
+    --destructive: 0.62 0.2 25;
+    --destructive-foreground: 0.985 0 0;
+    --border: 0.28 0.045 248;
+    --input: 0.22 0.04 248;
+    --ring: 0.82 0.155 80;
+    --gold: 0.82 0.155 80;
+    --gold-deep: 0.76 0.148 78;
+    --green-gain: 0.72 0.2 155;
+    --red-loss: 0.62 0.21 25;
+    --chart-1: 0.82 0.155 80;
+    --chart-2: 0.72 0.2 155;
+    --chart-3: 0.62 0.21 25;
+    --chart-4: 0.6 0.15 200;
+    --chart-5: 0.65 0.12 280;
+    --sidebar: 0.155 0.03 248;
+    --sidebar-foreground: 0.93 0.015 240;
+    --sidebar-primary: 0.82 0.155 80;
+    --sidebar-primary-foreground: 0.12 0.02 248;
+    --sidebar-accent: 0.2 0.038 248;
+    --sidebar-accent-foreground: 0.93 0.015 240;
+    --sidebar-border: 0.28 0.045 248;
+    --sidebar-ring: 0.82 0.155 80;
+    /* Market State CSS Variables */
+    --opacity-global: 1;
+    --card-filter: grayscale(0%) brightness(1);
+    --text-primary-market: #ffffff;
+    --accent-gold-market: #f59e0b;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Inter", "Poppins", system-ui, -apple-system, sans-serif;
+    background: linear-gradient(135deg, #0b1424 0%, #0a1220 100%);
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .nav-link {
+    @apply text-xs font-semibold uppercase tracking-wider transition-colors py-1 relative;
+    color: oklch(var(--foreground) / 0.7);
+  }
+
+  .nav-link.active {
+    @apply text-foreground;
+  }
+
+  .nav-link.active::after {
+    content: "";
+    @apply absolute bottom-0 left-0 right-0 h-0.5 bg-[#F2C94C];
+  }
+
+  .trading-card {
+    background: #111e33;
+    border: 1px solid #24344f;
+    @apply rounded-xl;
+  }
+
+  .signal-buy {
+    border-left: 3px solid #2ed47a;
+  }
+  .signal-sell {
+    border-left: 3px solid #ff5a5f;
+  }
+  .signal-neutral {
+    border-left: 3px solid #e7d27c;
+  }
+  .signal-strong-buy {
+    border-left: 3px solid #00c853;
+  }
+  .signal-strong-sell {
+    border-left: 3px solid #ff1744;
+  }
+
+  .price-up {
+    @apply text-[#2ED47A];
+  }
+  .price-down {
+    @apply text-[#FF5A5F];
+  }
+  .price-neutral {
+    @apply text-[#E7D27C];
+  }
+
+  .gold-text {
+    color: #f2c94c;
+  }
+  .gold-bg {
+    background-color: #f2c94c;
+  }
+
+  .pulse-green {
+    @apply inline-block w-2 h-2 rounded-full bg-[#2ED47A];
+    animation: pulse-green 2s infinite;
+  }
+
+  .ticker-wrapper {
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .ticker-content {
+    display: inline-flex;
+    animation: ticker-scroll 40s linear infinite;
+  }
+
+  .ticker-content:hover {
+    animation-play-state: paused;
+  }
+}
+
+/* Market state transitions */
+.dashboard-container {
+  transition: opacity 2s ease-in-out, filter 2s ease-in-out;
+}
+
+/*
+  Market state visual dimming.
+  pointer-events are NEVER disabled at the card level — cards must remain
+  clickable in all market states so users can navigate, view data, and use
+  paper-trading controls at all times outside NSE hours.
+  Trade buttons are individually disabled via disabled={tradeButtonsLocked}
+  in Dashboard.tsx (only active during HALTED circuit-breaker).
+*/
+
+/* Market open state */
+.market-open .market-dim-card {
+  filter: grayscale(0%) brightness(1);
+  transition: filter 2s ease-in-out;
+}
+
+/* Market closed state — visual dim only */
+.market-closed .market-dim-card {
+  filter: grayscale(60%) brightness(0.55);
+  transition: filter 2s ease-in-out;
+}
+
+/* Market pre-open state */
+.market-pre-open .market-dim-card {
+  filter: grayscale(20%) brightness(0.7);
+  transition: filter 2s ease-in-out;
+}
+
+/* Market closing state */
+.market-closing .market-dim-card {
+  filter: grayscale(0%) brightness(0.85);
+  transition: filter 2s ease-in-out;
+}
+
+/* Market holiday state — visual dim only */
+.market-holiday .market-dim-card {
+  filter: grayscale(80%) brightness(0.45);
+  transition: filter 2s ease-in-out;
+}
+
+/* Market halted state — visual dim only */
+.market-halted .market-dim-card {
+  filter: grayscale(0%) brightness(0.6);
+  transition: filter 2s ease-in-out;
+}
+
+/* AMO window - semi-dim */
+.market-amo .market-dim-card {
+  filter: grayscale(30%) brightness(0.7);
+  transition: filter 2s ease-in-out;
+}
+
+/* Market status bar */
+.market-status-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 48px;
+  background: #0d1117;
+  border-top: 1px solid #1f2937;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  z-index: 9999;
+  transition: all 1s ease;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.market-open-bar {
+  border-top: 1px solid #10b981 !important;
+  box-shadow: 0 -2px 20px rgba(16, 185, 129, 0.15);
+}
+
+.market-closed-bar {
+  border-top: 1px solid #374151 !important;
+  opacity: 0.7;
+}
+
+.market-pre-open-bar {
+  border-top: 1px solid #f59e0b !important;
+  box-shadow: 0 -2px 20px rgba(245, 158, 11, 0.1);
+}
+
+.market-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.chip-open {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #34d399;
+}
+
+.chip-closed {
+  background: rgba(55, 65, 81, 0.3);
+  border: 1px solid rgba(55, 65, 81, 0.5);
+  color: #6b7280;
+}
+
+.chip-preopen {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+}
+
+.chip-closing {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #f87171;
+}
+
+.chip-amo {
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  color: #a5b4fc;
+}
+
+.chip-halted {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.6);
+  color: #ef4444;
+  animation: blink 1s infinite;
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  animation: pulse-green-dot 1.5s infinite;
+  flex-shrink: 0;
+}
+
+.dead-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #4b5563;
+  flex-shrink: 0;
+}
+
+.yellow-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f59e0b;
+  animation: pulse-yellow 2.5s infinite;
+  flex-shrink: 0;
+}
+
+.purple-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #6366f1;
+  flex-shrink: 0;
+}
+
+.red-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ef4444;
+  flex-shrink: 0;
+}
+
+.countdown-timer {
+  font-family: "Courier New", monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #f59e0b;
+}
+
+.countdown-timer.closing-soon {
+  color: #ef4444;
+  animation: blink 1s infinite;
+}
+
+/* Price flash animations */
+@keyframes flashGreen {
+  0% {
+    background-color: rgba(16, 185, 129, 0.4);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+@keyframes flashRed {
+  0% {
+    background-color: rgba(239, 68, 68, 0.4);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.price-flash-up {
+  animation: flashGreen 0.3s ease forwards;
+}
+
+.price-flash-down {
+  animation: flashRed 0.3s ease forwards;
+}
+
+@keyframes pulse-green-dot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.8);
+  }
+}
+
+@keyframes pulse-yellow {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
+}
+
+@keyframes slow-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.slow-pulse {
+  animation: slow-pulse 3s ease-in-out infinite;
+}
+
+/* Signal closed overlay */
+.signal-closed-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit;
+  z-index: 5;
+  backdrop-filter: blur(2px);
+}
+
+/* Holiday banner */
+.holiday-banner {
+  background: linear-gradient(135deg, #080b14 0%, #0d1221 100%);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-left: 4px solid #3b82f6;
+}
+
+/* Circuit breaker banner */
+.circuit-breaker-banner {
+  background: linear-gradient(135deg, #1a0000 0%, #2d0000 100%);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  border-left: 4px solid #ef4444;
+  animation: blink 2s ease-in-out infinite;
+}
+
+@keyframes pulse-green {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(46, 212, 122, 0.5);
+  }
+  50% {
+    opacity: 0.7;
+    box-shadow: 0 0 0 6px rgba(46, 212, 122, 0);
+  }
+}
+
+@keyframes ticker-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.animate-blink {
+  animation: blink 1.5s ease-in-out infinite;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: #0b1424;
+}
+::-webkit-scrollbar-thumb {
+  background: #24344f;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #f2c94c;
+}
+
+/* Numeric font feature for prices */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
