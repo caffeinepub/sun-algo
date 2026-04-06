@@ -8,6 +8,7 @@ import type { SignalType } from "../backend.d";
 import ChartArea from "../components/ChartArea";
 import PortfolioSummary from "../components/PortfolioSummary";
 import SignalCard from "../components/SignalCard";
+import StockDetailModal from "../components/StockDetailModal";
 import WatchlistRow from "../components/WatchlistRow";
 import { useMarketModeContext } from "../contexts/MarketModeContext";
 import { useMarketStatusContext } from "../contexts/MarketStatusContext";
@@ -198,6 +199,7 @@ export default function Dashboard() {
   const removeFromWatchlist = useRemoveFromWatchlist();
   const [newSymbol, setNewSymbol] = useState("");
   const [dayPnl, setDayPnl] = useState(12450);
+  const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
 
   const { dominantStatus, marketStateClass } = useMarketStatusContext();
   const { marketMode, isMarketOpen, modeLabel } = useMarketModeContext();
@@ -280,316 +282,338 @@ export default function Dashboard() {
   const tradeButtonsLocked = dominantStatus === "HALTED";
 
   return (
-    <div
-      className={cn(
-        "px-4 lg:px-6 max-w-[1600px] mx-auto dashboard-container",
-        marketStateClass,
-      )}
-    >
-      {/* Holiday Banner — only for Indian mode */}
-      {dominantStatus === "HOLIDAY" && marketMode === "indian" && (
-        <div
-          className="holiday-banner rounded-lg p-3 mb-4 flex items-center gap-3"
-          data-ocid="dashboard.panel"
-        >
-          <span className="text-2xl">🎉</span>
-          <div>
-            <div className="text-sm font-bold text-blue-400">
-              Market Holiday
-            </div>
-            <div className="text-xs text-blue-300">
-              NSE/BSE closed today — next trading day resumes as scheduled
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Circuit Breaker Banner */}
-      {dominantStatus === "HALTED" && (
-        <div
-          className="circuit-breaker-banner rounded-lg p-3 mb-4 flex items-center gap-3"
-          data-ocid="dashboard.panel"
-        >
-          <span className="text-2xl">⚠️</span>
-          <div>
-            <div className="text-sm font-bold text-red-400">
-              CIRCUIT BREAKER TRIGGERED
-            </div>
-            <div className="text-xs text-red-300">
-              Market trading has been halted. All trade buttons are locked.
-            </div>
-          </div>
-          <div className="ml-auto">
-            <span className="text-xs font-bold text-red-400 font-mono">
-              STRATEGY ENGINE PAUSED
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Status Bar */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="text-lg font-bold text-[#EAF0FF]">
-            Trading Dashboard
-          </h1>
-          <div className="text-[9px] text-[#9AA8C1] mt-0.5">
-            {modeLabel} Mode
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 text-xs">
-            <span
-              className={`w-2 h-2 rounded-full ${
-                isMarketOpen || marketMode === "forex_crypto"
-                  ? "pulse-green"
-                  : ""
-              }`}
-              style={{ background: statusColor }}
-            />
-            <span style={{ color: statusColor }} className="font-semibold">
-              {marketStatusLabel}
-            </span>
-          </div>
-          <div className="text-xs text-[#9AA8C1]">
-            P&L Today:{" "}
-            <span
-              style={{ color: dayPnl >= 0 ? "#2ED47A" : "#FF5A5F" }}
-              className="font-bold tabular-nums"
-            >
-              {dayPnl >= 0 ? "+" : ""}₹
-              {Math.abs(dayPnl).toLocaleString("en-IN", {
-                maximumFractionDigits: 0,
-              })}
-            </span>
-          </div>
-          {isLive && (
-            <div className="flex items-center gap-1 text-[9px] text-[#9AA8C1]">
-              <span className="live-dot" style={{ width: 5, height: 5 }} />
-              <span>LIVE</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Main 3-column Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        {/* LEFT: Watchlist */}
-        <div className="lg:col-span-3">
+    <>
+      <div
+        className={cn(
+          "px-4 lg:px-6 max-w-[1600px] mx-auto dashboard-container",
+          marketStateClass,
+        )}
+      >
+        {/* Holiday Banner — only for Indian mode */}
+        {dominantStatus === "HOLIDAY" && marketMode === "indian" && (
           <div
-            className="trading-card market-dim-card p-3 h-full"
-            data-ocid="watchlist.panel"
+            className="holiday-banner rounded-lg p-3 mb-4 flex items-center gap-3"
+            data-ocid="dashboard.panel"
           >
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-xs font-bold uppercase tracking-widest text-[#EAF0FF]">
-                Watchlist
-              </h2>
-              <Activity className="w-3.5 h-3.5 text-[#9AA8C1]" />
-            </div>
-            {/* Add to watchlist */}
-            <div className="flex gap-1.5 mb-3">
-              <Input
-                data-ocid="watchlist.input"
-                value={newSymbol}
-                onChange={(e) => setNewSymbol(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleAddToWatchlist()}
-                placeholder="Add symbol..."
-                className="h-7 text-xs bg-white/5 border-[#24344F] text-[#EAF0FF] placeholder:text-[#9AA8C1]"
-              />
-              <Button
-                data-ocid="watchlist.primary_button"
-                size="sm"
-                onClick={handleAddToWatchlist}
-                className="h-7 w-7 p-0 flex-shrink-0"
-                style={{ background: "#F2C94C", color: "#0B1424" }}
-              >
-                <Plus className="w-3.5 h-3.5" />
-              </Button>
-            </div>
-            {/* Watchlist items */}
-            <div className="space-y-0.5">
-              {displayWatchlist.map((item, idx) => (
-                <WatchlistRow
-                  key={item.instrumentSymbol}
-                  item={item}
-                  price={getPrice(item.instrumentSymbol)}
-                  index={idx + 1}
-                  onRemove={handleRemove}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* CENTER: Chart + Signals */}
-        <div className="lg:col-span-6 space-y-4">
-          {/* Chart Card */}
-          <div
-            className="trading-card market-dim-card p-4"
-            data-ocid="chart.panel"
-          >
-            <ChartArea symbol="RELIANCE" basePrice={nifty?.price ?? 2847} />
-          </div>
-
-          {/* Signal Cards */}
-          <div data-ocid="signals.panel">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-xs font-bold uppercase tracking-widest text-[#EAF0FF]">
-                Live Signals
-              </h2>
-              <div className="flex items-center gap-1 text-[#9AA8C1]">
-                <RefreshCw className="w-3 h-3" />
-                <span className="text-[10px]">Auto-refresh</span>
+            <span className="text-2xl">🎉</span>
+            <div>
+              <div className="text-sm font-bold text-blue-400">
+                Market Holiday
+              </div>
+              <div className="text-xs text-blue-300">
+                NSE/BSE closed today — next trading day resumes as scheduled
               </div>
             </div>
-
-            {/* Signal engine paused message — hidden for forex_crypto */}
-            {!isMarketOpen && dominantStatus !== "HOLIDAY" && pauseMessage && (
-              <div
-                className="text-xs text-[#9AA8C1] bg-white/5 rounded px-3 py-1.5 flex items-center gap-2 mb-2"
-                data-ocid="signals.panel"
-              >
-                <span>⏸️</span>
-                <span>{pauseMessage}</span>
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              {displaySignals.map((signal, i) => (
-                <SignalCard
-                  key={signal.id}
-                  signal={signal}
-                  index={i + 1}
-                  marketClosed={false}
-                  nextOpenTime={undefined}
-                />
-              ))}
-            </div>
           </div>
-        </div>
+        )}
 
-        {/* RIGHT: Portfolio + Strategy */}
-        <div className="lg:col-span-3 space-y-4">
-          {/* Portfolio Summary */}
-          <div className="trading-card market-dim-card p-3">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-xs font-bold uppercase tracking-widest text-[#EAF0FF]">
-                Portfolio
-              </h2>
-              <span
-                className="text-[10px] px-2 py-0.5 rounded-full"
-                style={{ background: "#2ED47A22", color: "#2ED47A" }}
-              >
-                PAPER
+        {/* Circuit Breaker Banner */}
+        {dominantStatus === "HALTED" && (
+          <div
+            className="circuit-breaker-banner rounded-lg p-3 mb-4 flex items-center gap-3"
+            data-ocid="dashboard.panel"
+          >
+            <span className="text-2xl">⚠️</span>
+            <div>
+              <div className="text-sm font-bold text-red-400">
+                CIRCUIT BREAKER TRIGGERED
+              </div>
+              <div className="text-xs text-red-300">
+                Market trading has been halted. All trade buttons are locked.
+              </div>
+            </div>
+            <div className="ml-auto">
+              <span className="text-xs font-bold text-red-400 font-mono">
+                STRATEGY ENGINE PAUSED
               </span>
             </div>
-            <PortfolioSummary dayPnl={dayPnl} />
+          </div>
+        )}
+
+        {/* Status Bar */}
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-lg font-bold text-[#EAF0FF]">
+              Trading Dashboard
+            </h1>
+            <div className="text-[9px] text-[#9AA8C1] mt-0.5">
+              {modeLabel} Mode
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 text-xs">
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  isMarketOpen || marketMode === "forex_crypto"
+                    ? "pulse-green"
+                    : ""
+                }`}
+                style={{ background: statusColor }}
+              />
+              <span style={{ color: statusColor }} className="font-semibold">
+                {marketStatusLabel}
+              </span>
+            </div>
+            <div className="text-xs text-[#9AA8C1]">
+              P&L Today:{" "}
+              <span
+                style={{ color: dayPnl >= 0 ? "#2ED47A" : "#FF5A5F" }}
+                className="font-bold tabular-nums"
+              >
+                {dayPnl >= 0 ? "+" : ""}₹
+                {Math.abs(dayPnl).toLocaleString("en-IN", {
+                  maximumFractionDigits: 0,
+                })}
+              </span>
+            </div>
+            {isLive && (
+              <div className="flex items-center gap-1 text-[9px] text-[#9AA8C1]">
+                <span className="live-dot" style={{ width: 5, height: 5 }} />
+                <span>LIVE</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Main 3-column Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          {/* LEFT: Watchlist */}
+          <div className="lg:col-span-3">
+            <div
+              className="trading-card market-dim-card p-3 h-full"
+              data-ocid="watchlist.panel"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-xs font-bold uppercase tracking-widest text-[#EAF0FF]">
+                  Watchlist
+                </h2>
+                <Activity className="w-3.5 h-3.5 text-[#9AA8C1]" />
+              </div>
+              {/* Add to watchlist */}
+              <div className="flex gap-1.5 mb-3">
+                <Input
+                  data-ocid="watchlist.input"
+                  value={newSymbol}
+                  onChange={(e) => setNewSymbol(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAddToWatchlist()}
+                  placeholder="Add symbol..."
+                  className="h-7 text-xs bg-white/5 border-[#24344F] text-[#EAF0FF] placeholder:text-[#9AA8C1]"
+                />
+                <Button
+                  data-ocid="watchlist.primary_button"
+                  size="sm"
+                  onClick={handleAddToWatchlist}
+                  className="h-7 w-7 p-0 flex-shrink-0"
+                  style={{ background: "#F2C94C", color: "#0B1424" }}
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+              {/* Watchlist items */}
+              <div className="space-y-0.5">
+                {displayWatchlist.map((item, idx) => (
+                  <WatchlistRow
+                    key={item.instrumentSymbol}
+                    item={item}
+                    price={getPrice(item.instrumentSymbol)}
+                    index={idx + 1}
+                    onRemove={handleRemove}
+                    onClick={(sym) => setSelectedSymbol(sym)}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
 
-          {/* Strategy Performance */}
-          <div className="trading-card market-dim-card p-3">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-[#EAF0FF] mb-3">
-              Top Strategies
-            </h2>
-            <div className="space-y-3">
-              {displayStrategies.slice(0, 2).map((strat, i) => (
-                <div
-                  key={strat.id}
-                  data-ocid={`strategies.item.${i + 1}`}
-                  className="bg-white/5 rounded-lg p-2.5"
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <div className="text-xs font-bold text-[#EAF0FF]">
-                        {strat.name}
-                      </div>
-                      <div className="text-[9px] text-[#9AA8C1] mt-0.5">
-                        {strat.strategyType}
-                      </div>
-                    </div>
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full mt-1 ${
-                        strat.enabled ? "pulse-green" : ""
-                      }`}
-                      style={{
-                        background: strat.enabled ? "#2ED47A" : "#9AA8C1",
-                      }}
-                    />
-                  </div>
-                  <div className="flex gap-3">
-                    <div>
-                      <div className="text-[9px] text-[#9AA8C1]">
-                        Daily Limit
-                      </div>
-                      <div
-                        className="text-xs font-bold"
-                        style={{ color: "#F2C94C" }}
-                      >
-                        {strat.riskSettings.dailyLossLimitPct}%
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[9px] text-[#9AA8C1]">Max Pos</div>
-                      <div className="text-xs font-bold text-[#EAF0FF]">
-                        {strat.riskSettings.maxPositions.toString()}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[9px] text-[#9AA8C1]">SL</div>
-                      <div className="text-xs font-bold text-[#EAF0FF]">
-                        {strat.riskSettings.perTradeStopLossPct}%
-                      </div>
-                    </div>
-                  </div>
-                  {/* Trade buttons — only locked during circuit breaker halt in paper mode */}
-                  <div className="flex gap-1.5 mt-2">
-                    <button
-                      type="button"
-                      data-ocid={`strategies.primary_button.${i + 1}`}
-                      disabled={tradeButtonsLocked}
-                      className="flex-1 text-[9px] font-bold py-1 rounded transition-all"
-                      style={{
-                        background: !tradeButtonsLocked
-                          ? "rgba(46,212,122,0.15)"
-                          : "rgba(55,65,81,0.3)",
-                        color: !tradeButtonsLocked ? "#2ED47A" : "#4B5563",
-                        border: `1px solid ${
-                          !tradeButtonsLocked
-                            ? "rgba(46,212,122,0.3)"
-                            : "rgba(55,65,81,0.4)"
-                        }`,
-                        cursor: !tradeButtonsLocked ? "pointer" : "not-allowed",
-                      }}
-                    >
-                      BUY
-                    </button>
-                    <button
-                      type="button"
-                      data-ocid={`strategies.secondary_button.${i + 1}`}
-                      disabled={tradeButtonsLocked}
-                      className="flex-1 text-[9px] font-bold py-1 rounded transition-all"
-                      style={{
-                        background: !tradeButtonsLocked
-                          ? "rgba(255,90,95,0.15)"
-                          : "rgba(55,65,81,0.3)",
-                        color: !tradeButtonsLocked ? "#FF5A5F" : "#4B5563",
-                        border: `1px solid ${
-                          !tradeButtonsLocked
-                            ? "rgba(255,90,95,0.3)"
-                            : "rgba(55,65,81,0.4)"
-                        }`,
-                        cursor: !tradeButtonsLocked ? "pointer" : "not-allowed",
-                      }}
-                    >
-                      SELL
-                    </button>
-                  </div>
+          {/* CENTER: Chart + Signals */}
+          <div className="lg:col-span-6 space-y-4">
+            {/* Chart Card */}
+            <div
+              className="trading-card market-dim-card p-4"
+              data-ocid="chart.panel"
+            >
+              <ChartArea symbol="RELIANCE" basePrice={nifty?.price ?? 2847} />
+            </div>
+
+            {/* Signal Cards */}
+            <div data-ocid="signals.panel">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-xs font-bold uppercase tracking-widest text-[#EAF0FF]">
+                  Live Signals
+                </h2>
+                <div className="flex items-center gap-1 text-[#9AA8C1]">
+                  <RefreshCw className="w-3 h-3" />
+                  <span className="text-[10px]">Auto-refresh</span>
                 </div>
-              ))}
+              </div>
+
+              {/* Signal engine paused message — hidden for forex_crypto */}
+              {!isMarketOpen &&
+                dominantStatus !== "HOLIDAY" &&
+                pauseMessage && (
+                  <div
+                    className="text-xs text-[#9AA8C1] bg-white/5 rounded px-3 py-1.5 flex items-center gap-2 mb-2"
+                    data-ocid="signals.panel"
+                  >
+                    <span>⏸️</span>
+                    <span>{pauseMessage}</span>
+                  </div>
+                )}
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {displaySignals.map((signal, i) => (
+                  <SignalCard
+                    key={signal.id}
+                    signal={signal}
+                    index={i + 1}
+                    marketClosed={false}
+                    nextOpenTime={undefined}
+                    onClick={() => setSelectedSymbol(signal.instrumentSymbol)}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT: Portfolio + Strategy */}
+          <div className="lg:col-span-3 space-y-4">
+            {/* Portfolio Summary */}
+            <div className="trading-card market-dim-card p-3">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-xs font-bold uppercase tracking-widest text-[#EAF0FF]">
+                  Portfolio
+                </h2>
+                <span
+                  className="text-[10px] px-2 py-0.5 rounded-full"
+                  style={{ background: "#2ED47A22", color: "#2ED47A" }}
+                >
+                  PAPER
+                </span>
+              </div>
+              <PortfolioSummary dayPnl={dayPnl} />
+            </div>
+
+            {/* Strategy Performance */}
+            <div className="trading-card market-dim-card p-3">
+              <h2 className="text-xs font-bold uppercase tracking-widest text-[#EAF0FF] mb-3">
+                Top Strategies
+              </h2>
+              <div className="space-y-3">
+                {displayStrategies.slice(0, 2).map((strat, i) => (
+                  <div
+                    key={strat.id}
+                    data-ocid={`strategies.item.${i + 1}`}
+                    className="bg-white/5 rounded-lg p-2.5"
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <div className="text-xs font-bold text-[#EAF0FF]">
+                          {strat.name}
+                        </div>
+                        <div className="text-[9px] text-[#9AA8C1] mt-0.5">
+                          {strat.strategyType}
+                        </div>
+                      </div>
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full mt-1 ${
+                          strat.enabled ? "pulse-green" : ""
+                        }`}
+                        style={{
+                          background: strat.enabled ? "#2ED47A" : "#9AA8C1",
+                        }}
+                      />
+                    </div>
+                    <div className="flex gap-3">
+                      <div>
+                        <div className="text-[9px] text-[#9AA8C1]">
+                          Daily Limit
+                        </div>
+                        <div
+                          className="text-xs font-bold"
+                          style={{ color: "#F2C94C" }}
+                        >
+                          {strat.riskSettings.dailyLossLimitPct}%
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[9px] text-[#9AA8C1]">Max Pos</div>
+                        <div className="text-xs font-bold text-[#EAF0FF]">
+                          {strat.riskSettings.maxPositions.toString()}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[9px] text-[#9AA8C1]">SL</div>
+                        <div className="text-xs font-bold text-[#EAF0FF]">
+                          {strat.riskSettings.perTradeStopLossPct}%
+                        </div>
+                      </div>
+                    </div>
+                    {/* Trade buttons — only locked during circuit breaker halt in paper mode */}
+                    <div className="flex gap-1.5 mt-2">
+                      <button
+                        type="button"
+                        data-ocid={`strategies.primary_button.${i + 1}`}
+                        disabled={tradeButtonsLocked}
+                        className="flex-1 text-[9px] font-bold py-1 rounded transition-all"
+                        style={{
+                          background: !tradeButtonsLocked
+                            ? "rgba(46,212,122,0.15)"
+                            : "rgba(55,65,81,0.3)",
+                          color: !tradeButtonsLocked ? "#2ED47A" : "#4B5563",
+                          border: `1px solid ${
+                            !tradeButtonsLocked
+                              ? "rgba(46,212,122,0.3)"
+                              : "rgba(55,65,81,0.4)"
+                          }`,
+                          cursor: !tradeButtonsLocked
+                            ? "pointer"
+                            : "not-allowed",
+                        }}
+                      >
+                        BUY
+                      </button>
+                      <button
+                        type="button"
+                        data-ocid={`strategies.secondary_button.${i + 1}`}
+                        disabled={tradeButtonsLocked}
+                        className="flex-1 text-[9px] font-bold py-1 rounded transition-all"
+                        style={{
+                          background: !tradeButtonsLocked
+                            ? "rgba(255,90,95,0.15)"
+                            : "rgba(55,65,81,0.3)",
+                          color: !tradeButtonsLocked ? "#FF5A5F" : "#4B5563",
+                          border: `1px solid ${
+                            !tradeButtonsLocked
+                              ? "rgba(255,90,95,0.3)"
+                              : "rgba(55,65,81,0.4)"
+                          }`,
+                          cursor: !tradeButtonsLocked
+                            ? "pointer"
+                            : "not-allowed",
+                        }}
+                      >
+                        SELL
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Stock Detail Modal */}
+      {selectedSymbol && (
+        <StockDetailModal
+          symbol={selectedSymbol}
+          open={!!selectedSymbol}
+          onClose={() => setSelectedSymbol(null)}
+          currentPrice={getPrice(selectedSymbol)?.price}
+          changePct={getPrice(selectedSymbol)?.changePct}
+          currency={getPrice(selectedSymbol)?.currency}
+        />
+      )}
+    </>
   );
 }

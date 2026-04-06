@@ -85,12 +85,20 @@ const BASE_PRICES: MarketPrice[] = [
     currency: "$",
   },
   {
+    symbol: "SOL/USD",
+    name: "SOL/USD",
+    price: 178.45,
+    change: 3.21,
+    changePct: 1.83,
+    currency: "$",
+  },
+  {
     symbol: "GOLD",
     name: "GOLD",
-    price: 72450.0,
-    change: 224.6,
-    changePct: 0.31,
-    currency: "₹",
+    price: 2330.0,
+    change: 8.4,
+    changePct: 0.36,
+    currency: "$",
   },
   {
     symbol: "CRUDE",
@@ -114,6 +122,14 @@ const BASE_PRICES: MarketPrice[] = [
     price: 1.0834,
     change: 0.0012,
     changePct: 0.11,
+    currency: "$",
+  },
+  {
+    symbol: "GBPUSD",
+    name: "GBP/USD",
+    price: 1.2645,
+    change: -0.0008,
+    changePct: -0.06,
     currency: "$",
   },
   {
@@ -168,6 +184,15 @@ function getNYSEOpenStatus(): boolean {
   );
 }
 
+// Per-asset volatility: how much it can move per 3-second tick
+function getVolatility(symbol: string): number {
+  if (["BTC/USD", "ETH/USD", "SOL/USD"].includes(symbol)) return 0.018; // 1.8% crypto
+  if (["EURUSD", "GBPUSD", "USDINR"].includes(symbol)) return 0.0003; // 0.03% forex
+  if (["NIFTY50", "SENSEX", "BANKNIFTY"].includes(symbol)) return 0.004; // 0.4% indices
+  if (["GOLD", "CRUDE"].includes(symbol)) return 0.006; // 0.6% commodities
+  return 0.008; // 0.8% equities
+}
+
 export function useMarketData() {
   const [prices, setPrices] = useState<MarketPrice[]>(BASE_PRICES);
   const [flashState, setFlashState] = useState<
@@ -191,15 +216,43 @@ export function useMarketData() {
 
       setIsLive(shouldBeLive);
 
-      if (!shouldBeLive) return;
+      // In forex_crypto mode, always update ALL prices
+      // In other modes, always show live prices for forex/crypto symbols, apply market hours to others
+      const forceUpdateSymbols = [
+        "BTC/USD",
+        "ETH/USD",
+        "SOL/USD",
+        "EURUSD",
+        "GBPUSD",
+        "USDINR",
+        "CRUDE",
+        "GOLD",
+      ];
+      const shouldUpdate = shouldBeLive || marketMode === "forex_crypto";
+
+      if (!shouldUpdate && marketMode === "indian") return;
 
       setPrices((prev) => {
         const newFlash: Record<string, "up" | "down" | null> = {};
         const updated = prev.map((item, idx) => {
           const base = basePricesRef.current[idx];
-          const fluctPct = (Math.random() - 0.5) * 0.006;
+          // In Indian mode, still update forex/crypto prices 24/7
+          const isForexCrypto = forceUpdateSymbols.includes(item.symbol);
+          if (!shouldUpdate && !isForexCrypto) {
+            return item; // Don't update Indian stocks when market closed
+          }
+          const vol = getVolatility(item.symbol);
+          const fluctPct = (Math.random() - 0.5) * vol;
+          const decimals =
+            item.price < 2
+              ? 5
+              : item.price < 10
+                ? 4
+                : item.price > 10000
+                  ? 2
+                  : 2;
           const newPrice = Number.parseFloat(
-            (item.price * (1 + fluctPct)).toFixed(item.price > 100 ? 2 : 4),
+            (item.price * (1 + fluctPct)).toFixed(decimals),
           );
           const changeFromBase = newPrice - base.price;
           const changePct = Number.parseFloat(
@@ -209,17 +262,13 @@ export function useMarketData() {
           return {
             ...item,
             price: newPrice,
-            change: Number.parseFloat(changeFromBase.toFixed(2)),
+            change: Number.parseFloat(changeFromBase.toFixed(decimals)),
             changePct,
           };
         });
 
-        // Schedule flash clear after 300ms
-        setTimeout(() => {
-          setFlashState({});
-        }, 300);
+        setTimeout(() => setFlashState({}), 300);
         setFlashState(newFlash);
-
         return updated;
       });
     }, 3000);

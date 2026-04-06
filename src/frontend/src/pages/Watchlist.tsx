@@ -28,6 +28,7 @@ import { Plus, Search, TrendingDown, TrendingUp } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AssetClass } from "../backend.d";
+import StockDetailModal from "../components/StockDetailModal";
 import { useMarketData } from "../hooks/useMarketData";
 
 const INSTRUMENTS = [
@@ -204,6 +205,7 @@ export default function Watchlist() {
   const [newName, setNewName] = useState("");
   const [newExchange, setNewExchange] = useState("");
   const [newAsset, setNewAsset] = useState("equity");
+  const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
 
   const filtered = INSTRUMENTS.filter((inst) => {
     const matchSearch =
@@ -420,8 +422,9 @@ export default function Watchlist() {
                 <TableRow
                   key={inst.symbol}
                   data-ocid={`watchlist.row.${i + 1}`}
-                  style={{ borderColor: "#1E2C44" }}
-                  className="hover:bg-white/5"
+                  style={{ borderColor: "#1E2C44", cursor: "pointer" }}
+                  className="hover:bg-white/8"
+                  onClick={() => setSelectedSymbol(inst.symbol)}
                 >
                   <TableCell className="font-bold text-xs text-[#EAF0FF]">
                     {inst.symbol}
@@ -445,6 +448,13 @@ export default function Watchlist() {
                     {inst.assetClass}
                   </TableCell>
                   <TableCell className="text-xs font-bold tabular-nums text-[#EAF0FF]">
+                    {market
+                      ? market.currency
+                      : inst.exchange === "NSE" ||
+                          inst.exchange === "BSE" ||
+                          inst.exchange === "MCX"
+                        ? "₹"
+                        : "$"}
                     {price > 100
                       ? price.toLocaleString("en-IN", {
                           maximumFractionDigits: 2,
@@ -489,6 +499,21 @@ export default function Watchlist() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Stock Detail Modal */}
+      {selectedSymbol && (
+        <StockDetailModal
+          symbol={selectedSymbol}
+          open={!!selectedSymbol}
+          onClose={() => setSelectedSymbol(null)}
+          currentPrice={
+            getPrice(selectedSymbol)?.price ??
+            INSTRUMENTS.find((i) => i.symbol === selectedSymbol)?.price
+          }
+          changePct={getPrice(selectedSymbol)?.changePct}
+          currency={getPrice(selectedSymbol)?.currency}
+        />
+      )}
     </div>
   );
 }

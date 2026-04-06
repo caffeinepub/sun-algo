@@ -143,7 +143,7 @@
 
 /* Market state transitions */
 .dashboard-container {
-  transition: opacity 2s ease-in-out, filter 2s ease-in-out;
+  /* no filter transition to prevent dimming */
 }
 
 /*
@@ -157,44 +157,44 @@
 
 /* Market open state */
 .market-open .market-dim-card {
-  filter: grayscale(0%) brightness(1);
-  transition: filter 2s ease-in-out;
+  filter: none;
+  transition: filter 1s ease;
 }
 
-/* Market closed state — visual dim only */
+/* Market closed — almost no dimming */
 .market-closed .market-dim-card {
-  filter: grayscale(60%) brightness(0.55);
-  transition: filter 2s ease-in-out;
+  filter: brightness(0.96);
+  transition: filter 1s ease;
 }
 
-/* Market pre-open state */
+/* Market pre-open */
 .market-pre-open .market-dim-card {
-  filter: grayscale(20%) brightness(0.7);
-  transition: filter 2s ease-in-out;
+  filter: brightness(0.97);
+  transition: filter 1s ease;
 }
 
-/* Market closing state */
+/* Market closing */
 .market-closing .market-dim-card {
-  filter: grayscale(0%) brightness(0.85);
-  transition: filter 2s ease-in-out;
+  filter: brightness(0.98);
+  transition: filter 1s ease;
 }
 
-/* Market holiday state — visual dim only */
+/* Market holiday — slightly dimmer but still usable */
 .market-holiday .market-dim-card {
-  filter: grayscale(80%) brightness(0.45);
-  transition: filter 2s ease-in-out;
+  filter: brightness(0.92);
+  transition: filter 1s ease;
 }
 
-/* Market halted state — visual dim only */
+/* Market halted — circuit breaker */
 .market-halted .market-dim-card {
-  filter: grayscale(0%) brightness(0.6);
-  transition: filter 2s ease-in-out;
+  filter: brightness(0.75) saturate(0.5);
+  transition: filter 1s ease;
 }
 
-/* AMO window - semi-dim */
+/* AMO window */
 .market-amo .market-dim-card {
-  filter: grayscale(30%) brightness(0.7);
-  transition: filter 2s ease-in-out;
+  filter: brightness(0.95);
+  transition: filter 1s ease;
 }
 
 /* Market status bar */
